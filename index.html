@@ -498,24 +498,24 @@
         }
 
         window.loadFile = function(id) {
-            const saved = JSON.parse(localStorage.getItem('tetrisHubData') || '[]');
-            const item = saved.find(i => i.id === id);
-            if (!item) return;
-
-            if (confirm(`「${item.name}」を読み込みますか？\n現在の作業内容は上書きされます。`)) {
-                // 両方にデータを送る
-                if (item.editor) {
-                    editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
-                }
-                if (item.sim) {
-                    simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
-                }
-                document.getElementById('fileModal').style.display = 'none';
-                showToast("読み込みました");
+        const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+        const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const item = saved.find(i => i.id === id);
+        if (!item) return;
+        if (confirm(`「${item.name}」を読み込みますか？\n現在の作業内容は上書きされます。`)) {
+            if (item.editor) {
+                editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
             }
-        };
+            if (item.sim) {
+                simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+            }
+            document.getElementById('fileModal').style.display = 'none';
+            showToast("読み込みました");
+        }
+    };
 
-        window.deleteFile = function(id) {
+    window.deleteFile = function(id) {
+
             if (!confirm("削除しますか？")) return;
             const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
             let saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
