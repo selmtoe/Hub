@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tetris Tool Hub</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --accent-color: #4b4b7c;
+            --active-color: #6a6aff;
+            --icon-bg: rgba(30, 30, 50, 0.9);
+            --splitter-width: 8px;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: sans-serif;
+        }
+
+        /* Layout Containers */
+        #app-wrapper {
+            width: 100%;
+            height: 100%;
+            display: block; /* Default: Tab Mode */
+            position: relative;
+        }
+
+        #app-wrapper.split-mode {
+            display: flex;
+            flex-direction: row;
+        }
+        
+        #app-wrapper.split-mode.reverse {
+            flex-direction: row-reverse;
+        }
+
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+            border: none;
+            position: absolute;
+            top: 0; left: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Tab Mode Styles */
+        #app-wrapper:not(.split-mode) .iframe-container {
+            z-index: 1;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #app-wrapper:not(.split-mode) .iframe-container.active {
+            z-index: 2;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Split Mode Styles */
+        #app-wrapper.split-mode .iframe-container {
+            position: relative;
+            flex: 1;
+            width: auto;
+            opacity: 1;
+            pointer-events: auto;
+            min-width: 0; /* Important for flex */
+        }
+
+        /* Splitter */
+        #splitter {
+            display: none;
+            width: var(--splitter-width);
+            background: #2a2a3e;
+            cursor: col-resize;
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: none;
+        }
+        #splitter::after {
+            content: "";
+            width: 2px;
+            height: 30px;
+            background: #555;
+            border-radius: 1px;
+        }
+        #app-wrapper.split-mode #splitter {
+            display: flex;
+        }
+
+        /* FAB Menu */
+        .fab-container {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 15px;
+            z-index: 9999;
+        }
+
+        .fab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--icon-bg);
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            padding: 0;
+            outline: none;
+            color: #e0e0e0;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+        .fab-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        .main-toggle { z-index: 10; width: 55px; height: 55px; }
+        .main-toggle.open { transform: rotate(45deg); border-color: #ff4b4b; }
+
+        .sub-btn {
+            opacity: 0;
+            transform: translateY(20px) scale(0.5);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .fab-container.open .sub-btn {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .sub-btn.active {
+            border-color: var(--active-color);
+            box-shadow: 0 0 10px var(--active-color);
+            color: var(--active-color);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #1a1a2e;
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%; max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #e0e0e0;
+        }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444;
+            padding-bottom: 10px; }
+        .file-item {
+            display: flex;
+            justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 10px; margin-bottom: 8px; border-radius: 5px;
+        }
+        .file-info { flex: 1; cursor: pointer; }
+        .file-date { font-size: 10px; color: #aaa; }
+        .delete-btn { color: #ff4b4b; background: none; border: none; cursor: pointer;
+            padding: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; align-items: center;}
+        .rename-btn { color: #aaa; background: none; border: none; cursor: pointer;
+            padding: 5px; margin-right: 5px; display: flex; align-items: center;}
+        .rename-btn svg, .control-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .tab-container { display: flex; gap: 5px; margin-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #888; cursor: pointer; border-radius: 5px 5px 0 0; }
+        .tab-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
+        .control-btn {
+            flex: 1;
+            padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--accent-color);
+            color: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; text-align: center;
+            transition: background 0.2s;
+        }
+
+        .control-btn:hover { background: rgba(255,255,255,0.2); }
+        .modal-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+
+        .toast {
+
+            position: fixed;
+            top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
+            border-radius: 20px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 10001;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-wrapper">
+        <iframe id="iframe-editor" class="iframe-container active" src="https://selmtoe.github.io/Tetris_Simulator/F/index.html"></iframe>
+        <div id="splitter"></div>
+        <iframe id="iframe-sim" class="iframe-container" src="https://selmtoe.github.io/Tetris_Simulator/index.html"></iframe>
+    </div>
+
+    <div class="fab-container" id="fabMenu">
+        <button class="fab-btn main-toggle" onclick="toggleMenu()">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        </button>
+
+        <button class="fab-btn sub-btn" id="btn-split" onclick="toggleSplitMode()" title="画面分割">
+            <svg viewBox="0 0 24 24" id="icon-split">
+                <path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z"/>
+            </svg>
+        </button>
+
+        <button class="fab-btn sub-btn" id="btn-swap-side" onclick="swapSides()" title="左右入替">
+            <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
+        </button>
+
+        <button class="fab-btn sub-btn" onclick="saveCurrentState()" title="状態を保存">
+            <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        </button>
+
+        <button class="fab-btn sub-btn" onclick="openFileManager()" title="保存データ">
+            <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+        </button>
+
+        <button class="fab-btn sub-btn" id="btn-sim" onclick="switchTab('sim')" title="シミュレータへ">
+            <svg viewBox="0 0 24 24"><path d="M9 6h6v6h6v6H3v-6h6V6z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+
+        <button class="fab-btn sub-btn active" id="btn-editor" onclick="switchTab('editor')" title="エディタへ">
+    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
+    </div>
+
+    <div id="fileModal" class="modal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>保存データ一覧</h3>
+                <button onclick="document.getElementById('fileModal').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;">✕</button>
+            </div>
+            <div class="tab-container">
+                <button class="tab-btn active" id="tab-manual" onclick="switchSaveTab('manual')">手動セーブ</button>
+                <button class="tab-btn" id="tab-auto" onclick="switchSaveTab('auto')">自動セーブ</button>
+            </div>
+            <div class="modal-controls">
+                <button class="control-btn" onclick="exportData()" style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-14 9v2h14v-2H5z"/></svg>全保存
+                </button>
+                <button class="control-btn" onclick="triggerImport()" style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>読込
+                </button>
+                <button class="control-btn" onclick="deleteAllFiles()" style="border-color:#ff4b4b; color:#ff4b4b;">全削除</button>
+            </div>
+            <div id="fileList"></div>
+        </div>
+    </div>
+    <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(this)">
+
+    <div id="toast" class="toast"></div>
+
+
+    <script>
+        const editorFrame = document.getElementById('iframe-editor');
+        const simFrame = document.getElementById('iframe-sim');
+        const wrapper = document.getElementById('app-wrapper');
+        const splitter = document.getElementById('splitter');
+        const fabMenu = document.getElementById('fabMenu');
+        const mainToggle = document.querySelector('.main-toggle');
+        let isSplit = false;
+        let activeTab = 'editor';
+        let currentFileTab = 'manual';
+        let pendingSnapshot = { editor: null, sim: null, mode: 'manual' };
+
+        setInterval(() => {
+            requestSnapshot('auto');
+        }, 300000);
+
+        function requestSnapshot(mode) {
+            pendingSnapshot = { editor: null, sim: null, mode: mode };
+            editorFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
+            simFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
+        }
+
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (!data) return;
+            if (data.target === 'sim' && data.type === 'loadState') {
+                simFrame.contentWindow.postMessage(data, '*');
+                if (!isSplit) switchTab('sim');
+                showToast("Editor -> Simulator");
+                requestSnapshot('auto');
+            } 
+            else if (data.target === 'editor' && data.type === 'loadFumen') {
+                editorFrame.contentWindow.postMessage(data, '*');
+                if (!isSplit) switchTab('editor');
+                showToast("Simulator -> Editor");
+                requestSnapshot('auto');
+            }
+            else if (data.target === 'hub' && data.type === 'saveSnapshotResponse') {
+                if (data.source === 'editor') pendingSnapshot.editor = data.data;
+                if (data.source === 'sim') pendingSnapshot.sim = data.data;
+                if (pendingSnapshot.editor && pendingSnapshot.sim) {
+                    const mode = pendingSnapshot.mode;
+                    const snapshotData = { ...pendingSnapshot };
+                    pendingSnapshot = { editor: null, sim: null, mode: 'manual' };
+                    finalizeSave(snapshotData, mode);
+                }
+            }
+        });
+
+
+        // --- UI操作 ---
+        function toggleMenu() {
+            fabMenu.classList.toggle('open');
+            mainToggle.classList.toggle('open');
+        }
+
+        function switchTab(app) {
+            if (isSplit) return; // 分割中はタブ切り替え無効
+            
+            activeTab = app;
+            document.getElementById('btn-editor').classList.toggle('active', app === 'editor');
+            document.getElementById('btn-sim').classList.toggle('active', app === 'sim');
+            
+            if (app === 'editor') {
+                editorFrame.classList.add('active');
+                simFrame.classList.remove('active');
+            } else {
+                simFrame.classList.add('active');
+                editorFrame.classList.remove('active');
+            }
+        }
+
+        function toggleSplitMode() {
+            isSplit = !isSplit;
+            wrapper.classList.toggle('split-mode', isSplit);
+            
+            const iconPath = document.querySelector('#icon-split path');
+            if (isSplit) {
+                // Change icon to "Full screen"
+                iconPath.setAttribute('d', "M5 5h14v14H5zm0-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z");
+                // Reset sizes to 50/50
+                editorFrame.style.flex = "1";
+                simFrame.style.flex = "1";
+                showToast("分割モード");
+            } else {
+                // Change icon to "Split"
+                iconPath.setAttribute('d', "M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z");
+                // Restore active tab
+                switchTab(activeTab);
+                showToast("全画面モード");
+            }
+            toggleMenu();
+        }
+
+        function swapSides() {
+            wrapper.classList.toggle('reverse');
+            showToast("左右入替");
+        }
+
+        // --- スプリッター (ドラッグによるリサイズ) ---
+        let isDragging = false;
+        splitter.addEventListener('mousedown', startDrag);
+        splitter.addEventListener('touchstart', startDrag, {passive: false});
+
+        function startDrag(e) {
+            isDragging = true;
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('touchmove', onDrag, {passive: false});
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+            // iframeのイベント干渉を防ぐ
+            editorFrame.style.pointerEvents = 'none';
+            simFrame.style.pointerEvents = 'none';
+        }
+
+        function onDrag(e) {
+            if (!isDragging || !isSplit) return;
+            e.preventDefault(); // スクロール防止
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const containerWidth = wrapper.clientWidth;
+            let percent = (clientX / containerWidth) * 100;
+            // 制限 (10% - 90%)
+            percent = Math.max(10, Math.min(90, percent));
+            
+            // 並び順によって適用先を変える
+            const isReverse = wrapper.classList.contains('reverse');
+            if (!isReverse) {
+                editorFrame.style.flex = `0 0 ${percent}%`;
+                simFrame.style.flex = `1`;
+            } else {
+                simFrame.style.flex = `0 0 ${percent}%`;
+                editorFrame.style.flex = `1`;
+            }
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
+            
+            editorFrame.style.pointerEvents = '';
+            simFrame.style.pointerEvents = '';
+        }
+
+        // --- 保存・読み込みロジック ---
+        function saveCurrentState() {
+            showToast("状態を取得中...");
+            requestSnapshot('manual');
+            toggleMenu();
+        }
+
+        function finalizeSave(snapshot, mode) {
+            const timestamp = new Date().toLocaleString();
+            let name = timestamp;
+            if (mode === 'manual') {
+                name = prompt("保存名を入力してください:", timestamp);
+                if (!name) return;
+            } else {
+                name = "[Auto] " + timestamp;
+            }
+            const saveItem = {
+                id: Date.now(),
+                name: name,
+                date: timestamp,
+                editor: snapshot.editor,
+                sim: snapshot.sim
+            };
+            const storageKey = mode === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            try {
+                let saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                saved.unshift(saveItem);
+                if (mode === 'auto' && saved.length > 20) saved = saved.slice(0, 20);
+                localStorage.setItem(storageKey, JSON.stringify(saved));
+                if (mode === 'manual') showToast("保存しました");
+            } catch (e) {
+                if (mode === 'manual') alert("保存に失敗しました");
+            }
+        }
+
+        function switchSaveTab(tab) {
+            currentFileTab = tab;
+            document.getElementById('tab-manual').classList.toggle('active', tab === 'manual');
+            document.getElementById('tab-auto').classList.toggle('active', tab === 'auto');
+            renderFileList();
+        }
+
+        function openFileManager() {
+            renderFileList();
+            document.getElementById('fileModal').style.display = 'flex';
+            toggleMenu();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (saved.length === 0) {
+                list.innerHTML = '<div style="padding:10px;text-align:center;color:#888;">データがありません</div>';
+                return;
+            }
+            saved.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-info" onclick="loadFile(${item.id})">
+                        <div style="font-weight:bold;">${escapeHtml(item.name)}</div>
+                        <div class="file-date">${item.date}</div>
+                    </div>
+                    <button class="rename-btn" onclick="shareIndividual(${item.id})" title="共有用URLコピー">
+                        <svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+                    </button>
+                    <button class="rename-btn" onclick="exportIndividual(${item.id})" title="個別ダウンロード">
+                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-14 9v2h14v-2H5z"/></svg>
+                    </button>
+                    <button class="rename-btn" onclick="renameFile(${item.id})">：</button>
+                    <button class="delete-btn" onclick="deleteFile(${item.id})">×</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        window.loadFile = function(id) {
+            const saved = JSON.parse(localStorage.getItem('tetrisHubData') || '[]');
+            const item = saved.find(i => i.id === id);
+            if (!item) return;
+
+            if (confirm(`「${item.name}」を読み込みますか？\n現在の作業内容は上書きされます。`)) {
+                // 両方にデータを送る
+                if (item.editor) {
+                    editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+                }
+                if (item.sim) {
+                    simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+                }
+                document.getElementById('fileModal').style.display = 'none';
+                showToast("読み込みました");
+            }
+        };
+
+        window.deleteFile = function(id) {
+            if (!confirm("削除しますか？")) return;
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            let saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            saved = saved.filter(i => i.id !== id);
+            localStorage.setItem(storageKey, JSON.stringify(saved));
+            renderFileList();
+        };
+        window.renameFile = function(id) {
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const index = saved.findIndex(i => i.id === id);
+            if (index === -1) return;
+            const newName = prompt("新しい名前を入力してください:", saved[index].name);
+            if (newName && newName.trim() !== "") {
+                saved[index].name = newName.trim();
+                localStorage.setItem(storageKey, JSON.stringify(saved));
+                renderFileList();
+            }
+        };
+        window.deleteAllFiles = function() {
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            if (confirm("表示中のタブのデータをすべて削除しますか？")) {
+                localStorage.removeItem(storageKey);
+                renderFileList();
+                showToast("全削除しました");
+            }
+        };
+
+        window.exportIndividual = function(id) {
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const item = saved.find(i => i.id === id);
+            if (!item) return;
+            const blob = new Blob([JSON.stringify([item])], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${item.name}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.shareIndividual = function(id) {
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const item = saved.find(i => i.id === id);
+            if (!item) return;
+            const dataStr = btoa(unescape(encodeURIComponent(JSON.stringify(item))));
+            const shareUrl = window.location.origin + window.location.pathname + "#data=" + dataStr;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast("共有URLをコピーしました");
+            });
+        };
+
+        window.addEventListener('load', () => {
+            const hash = window.location.hash;
+            if (hash.startsWith('#data=')) {
+                try {
+                    const dataStr = decodeURIComponent(escape(atob(hash.substring(6))));
+                    const item = JSON.parse(dataStr);
+                    if (item.editor) editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+                    if (item.sim) simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+                    showToast("URLから読み込みました");
+                    history.replaceState(null, null, ' ');
+                } catch (e) {
+                    console.error("URLデータのパース失敗", e);
+                }
+            }
+        });
+
+
+        window.exportData = function() {
+            const saved = localStorage.getItem('tetrisHubData') || '[]';
+            if (saved === '[]') { alert("保存されたデータがありません。"); return; }
+            const blob = new Blob([saved], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tetris_hub_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("書き出しました");
+        };
+
+        window.triggerImport = function() {
+            document.getElementById('importFile').click();
+        };
+
+        window.importData = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Invalid format');
+                    
+                    const current = JSON.parse(localStorage.getItem('tetrisHubData') || '[]');
+                    // IDの衝突を避けるため再生成して結合
+                    const newItems = imported.map(item => ({
+                        ...item,
+                        id: Date.now() + Math.floor(Math.random() * 100000)
+                    }));
+                    
+                    const merged = [...newItems, ...current];
+                    localStorage.setItem('tetrisHubData', JSON.stringify(merged));
+                    openFileManager();
+                    showToast("読み込みました");
+                } catch(err) {
+                    alert("ファイルの読み込みに失敗しました: " + err.message);
+                }
+                input.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+function showToast(msg) {
+
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 2000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        // iframeのフォーカス制御 (メニューを閉じるため)
+        window.addEventListener('blur', () => {
+            if (fabMenu.classList.contains('open')) toggleMenu();
+        });
+    </script>
+</body>
+</html>
