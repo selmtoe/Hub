@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Tool Hub</title>
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1a1a2e">
-    
+   
     <style>
         :root {
             --bg-color: #1a1a2e;
@@ -651,6 +652,11 @@ function showToast(msg) {
         window.addEventListener('blur', () => {
             if (fabMenu.classList.contains('open')) toggleMenu();
         });
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
     </script>
 </body>
 </html>
