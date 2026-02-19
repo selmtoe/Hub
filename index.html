@@ -492,7 +492,11 @@
                 requestSnapshot('auto');
             }
             else if (data.target === 'hub' && data.type === 'fumenUrlResponse') {
-                editorOfficialFrame.src = data.url;
+                const iframe = document.getElementById('iframe-editor-official');
+                iframe.src = 'about:blank';
+                setTimeout(() => {
+                    iframe.src = data.url;
+                }, 50);
             }
             else if (data.target === 'hub' && data.type === 'importUrlToSimResponse') {
                 simFrame.contentWindow.postMessage({ type: 'loadState', data: data.data }, '*');
@@ -510,7 +514,11 @@
                     finalizeSave(snapshotData, mode);
                 }
             }
+            else if (data.target === 'hub' && data.type === 'switchTab') {
+                if (hubSettings.layoutMode === 'tab') switchTab(data.tab);
+            }
         });
+
 
         // --- Interaction Logic ---
         function toggleMenu() {
