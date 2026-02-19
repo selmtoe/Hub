@@ -25,57 +25,28 @@
             font-family: sans-serif;
         }
 
-        /* Layout Containers */
-        #app-wrapper {
+        /* Desktop Area */
+        #desktop-area {
             width: 100%;
             height: 100%;
-            display: block; /* Default: Tab Mode */
             position: relative;
         }
 
-        #app-wrapper.split-mode {
+        /* --- Tab Mode --- */
+        #desktop-area.tab-mode { display: block; }
+        #desktop-area.tab-mode .app-window { display: none; width: 100% !important; height: 100% !important; left: 0 !important; top: 0 !important; border: none; }
+        #desktop-area.tab-mode .app-window.active { display: flex; z-index: 2; }
+        #desktop-area.tab-mode #splitter { display: none; }
+        #desktop-area.tab-mode .window-header, #desktop-area.tab-mode .window-resizer { display: none; }
+
+        /* --- Split Mode --- */
+        #desktop-area.split-mode { display: flex; flex-direction: row; }
+        #desktop-area.split-mode.reverse { flex-direction: row-reverse; }
+        #desktop-area.split-mode .app-window { display: none; flex: 1; min-width: 0; width: auto !important; height: 100% !important; left: auto !important; top: auto !important; border: none; }
+        #desktop-area.split-mode .app-window.active { display: flex; position: relative; }
+        #desktop-area.split-mode .window-header, #desktop-area.split-mode .window-resizer { display: none; }
+        #desktop-area.split-mode #splitter {
             display: flex;
-            flex-direction: row;
-        }
-        
-        #app-wrapper.split-mode.reverse {
-            flex-direction: row-reverse;
-        }
-
-        .iframe-container {
-            width: 100%;
-            height: 100%;
-            border: none;
-            position: absolute;
-            top: 0; left: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        /* Tab Mode Styles */
-        #app-wrapper:not(.split-mode) .iframe-container {
-            z-index: 1;
-            opacity: 0;
-            pointer-events: none;
-        }
-        #app-wrapper:not(.split-mode) .iframe-container.active {
-            z-index: 2;
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        /* Split Mode Styles */
-        #app-wrapper.split-mode .iframe-container {
-            position: relative;
-            flex: 1;
-            width: auto;
-            opacity: 1;
-            pointer-events: auto;
-            min-width: 0; /* Important for flex */
-        }
-
-        /* Splitter */
-        #splitter {
-            display: none;
             width: var(--splitter-width);
             background: #2a2a3e;
             cursor: col-resize;
@@ -85,21 +56,102 @@
             user-select: none;
             touch-action: none;
         }
-        #splitter::after {
+        #desktop-area.split-mode #splitter::after {
             content: "";
             width: 2px;
             height: 30px;
             background: #555;
             border-radius: 1px;
         }
-        #app-wrapper.split-mode #splitter {
+
+        /* --- Window Mode --- */
+        #desktop-area.window-mode { display: block; height: calc(100% - 40px); overflow: hidden; }
+        #desktop-area.window-mode .app-window {
+            position: absolute;
+            background: #0f0f18;
+            border: 1px solid var(--accent-color);
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             display: flex;
+            flex-direction: column;
         }
+        #desktop-area.window-mode .app-window.minimized { display: none !important; }
+        #desktop-area.window-mode #splitter { display: none; }
+
+        /* Window Components */
+        .window-header {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            font-family: var(--font-display);
+        }
+        .win-min-btn {
+            background: none; border: none; color: #fff; cursor: pointer; font-weight: bold; padding: 0 5px;
+        }
+        .window-body { flex: 1; position: relative; width: 100%; height: 100%; }
+        .window-body iframe { width: 100%; height: 100%; border: none; display: block; }
+        .window-resizer {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 15px; height: 15px;
+            cursor: se-resize;
+            background: linear-gradient(135deg, transparent 50%, var(--active-color) 50%);
+            z-index: 10;
+        }
+
+        /* Overlays */
+        .overlay-btn {
+            position: absolute;
+            bottom: 20px; left: 20px;
+            background: rgba(106, 106, 255, 0.8);
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            font-weight: bold;
+        }
+        .overlay-btn:hover { background: rgba(106, 106, 255, 1); }
+
+        /* Taskbar */
+        #taskbar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 40px;
+            background: #1a1a2e;
+            border-top: 1px solid var(--accent-color);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 10px;
+            z-index: 10000;
+        }
+        #taskbar.hidden { display: none !important; }
+        .taskbar-item {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            padding: 5px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+        .taskbar-item:hover { border-color: var(--active-color); }
+        .taskbar-item.active { background: var(--accent-color); border-color: var(--active-color); }
 
         /* FAB Menu */
         .fab-container {
             position: fixed;
-            bottom: 25px;
+            bottom: 50px;
             right: 25px;
             display: flex;
             flex-direction: column-reverse;
@@ -107,7 +159,6 @@
             gap: 15px;
             z-index: 9999;
         }
-
         .fab-btn {
             width: 50px;
             height: 50px;
@@ -153,7 +204,7 @@
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8);
-            z-index: 10000;
+            z-index: 10001;
             justify-content: center; align-items: center;
         }
         .modal-content {
@@ -166,83 +217,141 @@
             overflow-y: auto;
             color: #e0e0e0;
         }
-        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444;
-            padding-bottom: 10px; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 10px; }
         .file-item {
-            display: flex;
-            justify-content: space-between; align-items: center;
+            display: flex; justify-content: space-between; align-items: center;
             background: rgba(255,255,255,0.05);
             padding: 10px; margin-bottom: 8px; border-radius: 5px;
         }
         .file-info { flex: 1; cursor: pointer; }
         .file-date { font-size: 10px; color: #aaa; }
-        .delete-btn { color: #ff4b4b; background: none; border: none; cursor: pointer;
-            padding: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; align-items: center;}
-        .rename-btn { color: #aaa; background: none; border: none; cursor: pointer;
-            padding: 5px; margin-right: 5px; display: flex; align-items: center;}
+        .delete-btn { color: #ff4b4b; background: none; border: none; cursor: pointer; padding: 5px; font-size: 24px; font-weight: bold; line-height: 1; display: flex; align-items: center;}
+        .rename-btn { color: #aaa; background: none; border: none; cursor: pointer; padding: 5px; margin-right: 5px; display: flex; align-items: center;}
         .rename-btn svg, .control-btn svg { width: 18px; height: 18px; fill: currentColor; }
         .tab-container { display: flex; gap: 5px; margin-bottom: 10px; }
         .tab-btn { flex: 1; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid #444; color: #888; cursor: pointer; border-radius: 5px 5px 0 0; }
         .tab-btn.active { background: var(--accent-color); color: #fff; border-color: var(--accent-color); }
         .control-btn {
-            flex: 1;
-            padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--accent-color);
-            color: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; text-align: center;
-            transition: background 0.2s;
+            flex: 1; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid var(--accent-color);
+            color: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; text-align: center; transition: background 0.2s;
         }
-
         .control-btn:hover { background: rgba(255,255,255,0.2); }
         .modal-controls { display: flex; gap: 10px; margin-bottom: 15px; }
 
-        .toast {
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .setting-row select, .setting-row input { background: var(--accent-color); color: #fff; border: 1px solid #fff; padding: 5px; border-radius: 4px; }
 
+        .toast {
             position: fixed;
             top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
             border-radius: 20px; opacity: 0; pointer-events: none;
             transition: opacity 0.3s;
-            z-index: 10001;
+            z-index: 10005;
         }
     </style>
 </head>
 <body>
 
-    <div id="app-wrapper">
-        <iframe id="iframe-editor" class="iframe-container active" src="https://selmtoe.github.io/Tetris_Simulator/F/index.html"></iframe>
+    <div id="desktop-area" class="tab-mode">
+        <div id="win-custom-editor" class="app-window" data-id="custom">
+            <div class="window-header">自作エディタ<button class="win-min-btn" onclick="minimizeWindow('custom')">_</button></div>
+            <div class="window-body">
+                <iframe id="iframe-editor-custom" src="https://selmtoe.github.io/Tetris_Simulator/F/index.html"></iframe>
+            </div>
+            <div class="window-resizer"></div>
+        </div>
+
+        <div id="win-official-editor" class="app-window" data-id="official">
+            <div class="window-header">本家テト譜<button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div>
+            <div class="window-body">
+                <button id="official-import-btn" class="overlay-btn" onclick="importFromOfficial()" title="URLをインポートしてシミュレータへ転送">⬇️ 読込</button>
+                <iframe id="iframe-editor-official" src="https://fumen.zui.jp/" style="background:#fff;"></iframe>
+            </div>
+            <div class="window-resizer"></div>
+        </div>
+
         <div id="splitter"></div>
-        <iframe id="iframe-sim" class="iframe-container" src="https://selmtoe.github.io/Tetris_Simulator/index.html"></iframe>
+
+        <div id="win-sim" class="app-window" data-id="sim">
+            <div class="window-header">シミュレータ<button class="win-min-btn" onclick="minimizeWindow('sim')">_</button></div>
+            <div class="window-body">
+                <iframe id="iframe-sim" src="https://selmtoe.github.io/Tetris_Simulator/index.html"></iframe>
+            </div>
+            <div class="window-resizer"></div>
+        </div>
     </div>
+
+    <div id="taskbar" class="hidden"></div>
 
     <div class="fab-container" id="fabMenu">
         <button class="fab-btn main-toggle" onclick="toggleMenu()">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
         </button>
 
-        <button class="fab-btn sub-btn" id="btn-split" onclick="toggleSplitMode()" title="画面分割">
+        <button class="fab-btn sub-btn" id="btn-split" onclick="toggleSplitMode()" title="画面分割(トグル)">
             <svg viewBox="0 0 24 24" id="icon-split">
                 <path d="M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z"/>
             </svg>
         </button>
 
-        <button class="fab-btn sub-btn" id="btn-swap-side" onclick="swapSides()" title="左右入替">
+        <button class="fab-btn sub-btn" id="btn-swap-side" onclick="swapSides()" title="左右入替 (分割時)">
             <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
         </button>
+        
+        <button class="fab-btn sub-btn" onclick="openSettings()" title="設定">
+            <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        </button>
 
-        <button class="fab-btn sub-btn" onclick="saveCurrentState()" title="状態を保存">
+        <button class="fab-btn sub-btn" onclick="saveCurrentState()" title="状態を手動保存">
             <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
         </button>
 
-        <button class="fab-btn sub-btn" onclick="openFileManager()" title="保存データ">
+        <button class="fab-btn sub-btn" onclick="openFileManager()" title="保存データ管理">
             <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
         </button>
 
-        <button class="fab-btn sub-btn" id="btn-sim" onclick="switchTab('sim')" title="シミュレータへ">
+        <button class="fab-btn sub-btn" id="btn-sim" onclick="switchTab('sim')" title="シミュレータへ (タブ時)">
             <svg viewBox="0 0 24 24"><path d="M9 6h6v6h6v6H3v-6h6V6z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
         </button>
 
-        <button class="fab-btn sub-btn active" id="btn-editor" onclick="switchTab('editor')" title="エディタへ">
-    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        <button class="fab-btn sub-btn active" id="btn-editor" onclick="switchTab('editor')" title="エディタへ (タブ時)">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
         </button>
+    </div>
+
+    <div id="hubSettingsModal" class="modal" onclick="if(event.target === this) this.style.display='none'">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Hub 設定</h3>
+                <button onclick="document.getElementById('hubSettingsModal').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;">✕</button>
+            </div>
+            <div class="setting-row">
+                <span>表示レイアウト</span>
+                <select id="setting-layout">
+                    <option value="tab">タブ (全画面)</option>
+                    <option value="split">画面分割</option>
+                    <option value="window">ウィンドウモード</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>デフォルトエディタ</span>
+                <select id="setting-editor">
+                    <option value="custom">自作エディタ</option>
+                    <option value="official">本家テト譜</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>自動セーブ間隔</span>
+                <select id="setting-autosave">
+                    <option value="60000">1分</option>
+                    <option value="300000">5分</option>
+                    <option value="600000">10分</option>
+                    <option value="0">しない</option>
+                </select>
+            </div>
+            <button class="control-btn" style="width:100%; margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
+        </div>
     </div>
 
     <div id="fileModal" class="modal" onclick="if(event.target === this) this.style.display='none'">
@@ -271,42 +380,124 @@
 
     <div id="toast" class="toast"></div>
 
-
     <script>
-        const editorFrame = document.getElementById('iframe-editor');
+        const editorCustomFrame = document.getElementById('iframe-editor-custom');
+        const editorOfficialFrame = document.getElementById('iframe-editor-official');
         const simFrame = document.getElementById('iframe-sim');
-        const wrapper = document.getElementById('app-wrapper');
+        const desktopArea = document.getElementById('desktop-area');
         const splitter = document.getElementById('splitter');
         const fabMenu = document.getElementById('fabMenu');
         const mainToggle = document.querySelector('.main-toggle');
-        let isSplit = false;
+
         let activeTab = 'editor';
         let currentFileTab = 'manual';
         let pendingSnapshot = { editor: null, sim: null, mode: 'manual' };
+        let autoSaveTimer = null;
+        let maxZIndex = 10;
 
-        setInterval(() => {
-            requestSnapshot('auto');
-        }, 300000);
+        // Default Settings
+        let hubSettings = {
+            layoutMode: 'tab', // 'tab', 'split', 'window'
+            defaultEditor: 'custom', // 'custom', 'official'
+            autoSaveInterval: 300000
+        };
+
+        // Window States (For Window Mode Taskbar)
+        const winStates = {
+            'custom': { minimized: false, name: '自作エディタ' },
+            'official': { minimized: false, name: '本家テト譜' },
+            'sim': { minimized: false, name: 'シミュレータ' }
+        };
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('tetrisHubSettings');
+                if (saved) Object.assign(hubSettings, JSON.parse(saved));
+            } catch(e) {}
+            applyLayoutMode();
+            updateAutoSaveInterval();
+        }
+
+        function updateAutoSaveInterval() {
+            if (autoSaveTimer) clearInterval(autoSaveTimer);
+            if (hubSettings.autoSaveInterval > 0) {
+                autoSaveTimer = setInterval(() => {
+                    requestSnapshot('auto');
+                }, hubSettings.autoSaveInterval);
+            }
+        }
+
+        function applyLayoutMode() {
+            desktopArea.className = `${hubSettings.layoutMode}-mode`;
+            const taskbar = document.getElementById('taskbar');
+            
+            const winSim = document.getElementById('win-sim');
+            const winCustom = document.getElementById('win-custom-editor');
+            const winOfficial = document.getElementById('win-official-editor');
+            
+            winSim.classList.remove('active');
+            winCustom.classList.remove('active');
+            winOfficial.classList.remove('active');
+
+            if (hubSettings.layoutMode === 'window') {
+                taskbar.classList.remove('hidden');
+                renderTaskbar();
+            } else {
+                taskbar.classList.add('hidden');
+                const isOfficial = hubSettings.defaultEditor === 'official';
+                const activeEditor = isOfficial ? winOfficial : winCustom;
+
+                if (hubSettings.layoutMode === 'split') {
+                    winSim.classList.add('active');
+                    activeEditor.classList.add('active');
+                    // Icon sync
+                    document.querySelector('#icon-split path').setAttribute('d', "M5 5h14v14H5zm0-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z");
+                } else if (hubSettings.layoutMode === 'tab') {
+                    if (activeTab === 'sim') winSim.classList.add('active');
+                    else activeEditor.classList.add('active');
+                    // Icon sync
+                    document.querySelector('#icon-split path').setAttribute('d', "M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z");
+                }
+            }
+            // Active Tab Buttons Update
+            document.getElementById('btn-editor').classList.toggle('active', activeTab === 'editor');
+            document.getElementById('btn-sim').classList.toggle('active', activeTab === 'sim');
+        }
 
         function requestSnapshot(mode) {
             pendingSnapshot = { editor: null, sim: null, mode: mode };
-            editorFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
+            editorCustomFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
             simFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
         }
 
         window.addEventListener('message', (e) => {
             const data = e.data;
             if (!data) return;
+            
             if (data.target === 'sim' && data.type === 'loadState') {
                 simFrame.contentWindow.postMessage(data, '*');
-                if (!isSplit) switchTab('sim');
+                if (hubSettings.layoutMode === 'tab') switchTab('sim');
                 showToast("Editor -> Simulator");
                 requestSnapshot('auto');
             } 
             else if (data.target === 'editor' && data.type === 'loadFumen') {
-                editorFrame.contentWindow.postMessage(data, '*');
-                if (!isSplit) switchTab('editor');
+                if (hubSettings.defaultEditor === 'official') {
+                    editorCustomFrame.contentWindow.postMessage(data, '*');
+                    editorCustomFrame.contentWindow.postMessage({ type: 'requestFumenUrl' }, '*');
+                } else {
+                    editorCustomFrame.contentWindow.postMessage(data, '*');
+                }
+                if (hubSettings.layoutMode === 'tab') switchTab('editor');
                 showToast("Simulator -> Editor");
+                requestSnapshot('auto');
+            }
+            else if (data.target === 'hub' && data.type === 'fumenUrlResponse') {
+                editorOfficialFrame.src = data.url;
+            }
+            else if (data.target === 'hub' && data.type === 'importUrlToSimResponse') {
+                simFrame.contentWindow.postMessage({ type: 'loadState', data: data.data }, '*');
+                if (hubSettings.layoutMode === 'tab') switchTab('sim');
+                showToast("Official -> Simulator");
                 requestSnapshot('auto');
             }
             else if (data.target === 'hub' && data.type === 'saveSnapshotResponse') {
@@ -321,105 +512,238 @@
             }
         });
 
-
-        // --- UI操作 ---
+        // --- Interaction Logic ---
         function toggleMenu() {
             fabMenu.classList.toggle('open');
             mainToggle.classList.toggle('open');
         }
 
         function switchTab(app) {
-            if (isSplit) return; // 分割中はタブ切り替え無効
-            
             activeTab = app;
-            document.getElementById('btn-editor').classList.toggle('active', app === 'editor');
-            document.getElementById('btn-sim').classList.toggle('active', app === 'sim');
-            
-            if (app === 'editor') {
-                editorFrame.classList.add('active');
-                simFrame.classList.remove('active');
-            } else {
-                simFrame.classList.add('active');
-                editorFrame.classList.remove('active');
-            }
+            if (hubSettings.layoutMode === 'tab') applyLayoutMode();
         }
 
         function toggleSplitMode() {
-            isSplit = !isSplit;
-            wrapper.classList.toggle('split-mode', isSplit);
+            if (hubSettings.layoutMode === 'split') hubSettings.layoutMode = 'tab';
+            else hubSettings.layoutMode = 'split';
             
-            const iconPath = document.querySelector('#icon-split path');
-            if (isSplit) {
-                // Change icon to "Full screen"
-                iconPath.setAttribute('d', "M5 5h14v14H5zm0-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z");
-                // Reset sizes to 50/50
-                editorFrame.style.flex = "1";
-                simFrame.style.flex = "1";
-                showToast("分割モード");
-            } else {
-                // Change icon to "Split"
-                iconPath.setAttribute('d', "M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z");
-                // Restore active tab
-                switchTab(activeTab);
-                showToast("全画面モード");
-            }
+            localStorage.setItem('tetrisHubSettings', JSON.stringify(hubSettings));
+            applyLayoutMode();
+            showToast(hubSettings.layoutMode === 'split' ? "分割モード" : "タブモード");
             toggleMenu();
         }
 
         function swapSides() {
-            wrapper.classList.toggle('reverse');
+            desktopArea.classList.toggle('reverse');
             showToast("左右入替");
         }
 
-        // --- スプリッター (ドラッグによるリサイズ) ---
-        let isDragging = false;
-        splitter.addEventListener('mousedown', startDrag);
-        splitter.addEventListener('touchstart', startDrag, {passive: false});
-
-        function startDrag(e) {
-            isDragging = true;
-            document.addEventListener('mousemove', onDrag);
-            document.addEventListener('touchmove', onDrag, {passive: false});
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchend', stopDrag);
-            // iframeのイベント干渉を防ぐ
-            editorFrame.style.pointerEvents = 'none';
-            simFrame.style.pointerEvents = 'none';
-        }
-
-        function onDrag(e) {
-            if (!isDragging || !isSplit) return;
-            e.preventDefault(); // スクロール防止
-            
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const containerWidth = wrapper.clientWidth;
-            let percent = (clientX / containerWidth) * 100;
-            // 制限 (10% - 90%)
-            percent = Math.max(10, Math.min(90, percent));
-            
-            // 並び順によって適用先を変える
-            const isReverse = wrapper.classList.contains('reverse');
-            if (!isReverse) {
-                editorFrame.style.flex = `0 0 ${percent}%`;
-                simFrame.style.flex = `1`;
-            } else {
-                simFrame.style.flex = `0 0 ${percent}%`;
-                editorFrame.style.flex = `1`;
+        function importFromOfficial() {
+            const url = prompt("本家テト譜のURL (v115@...) をペーストしてください:");
+            if (url) {
+                editorCustomFrame.contentWindow.postMessage({ type: 'importUrlToSim', url: url }, '*');
+                showToast("インポートを処理中...");
             }
         }
 
-        function stopDrag() {
-            isDragging = false;
-            document.removeEventListener('mousemove', onDrag);
-            document.removeEventListener('touchmove', onDrag);
-            document.removeEventListener('mouseup', stopDrag);
-            document.removeEventListener('touchend', stopDrag);
-            
-            editorFrame.style.pointerEvents = '';
-            simFrame.style.pointerEvents = '';
+        function openSettings() {
+            document.getElementById('hubSettingsModal').style.display = 'flex';
+            document.getElementById('setting-autosave').value = hubSettings.autoSaveInterval;
+            document.getElementById('setting-editor').value = hubSettings.defaultEditor;
+            document.getElementById('setting-layout').value = hubSettings.layoutMode;
+            toggleMenu();
         }
 
-        // --- 保存・読み込みロジック ---
+        function saveHubSettings() {
+            hubSettings.autoSaveInterval = parseInt(document.getElementById('setting-autosave').value, 10);
+            hubSettings.defaultEditor = document.getElementById('setting-editor').value;
+            hubSettings.layoutMode = document.getElementById('setting-layout').value;
+            localStorage.setItem('tetrisHubSettings', JSON.stringify(hubSettings));
+            applyLayoutMode();
+            updateAutoSaveInterval();
+            document.getElementById('hubSettingsModal').style.display = 'none';
+            showToast("設定を保存しました");
+        }
+
+        // --- Splitter Logic ---
+        let isDraggingSplitter = false;
+        splitter.addEventListener('mousedown', startSplitterDrag);
+        splitter.addEventListener('touchstart', startSplitterDrag, {passive: false});
+
+        function startSplitterDrag(e) {
+            isDraggingSplitter = true;
+            document.addEventListener('mousemove', onSplitterDrag);
+            document.addEventListener('touchmove', onSplitterDrag, {passive: false});
+            document.addEventListener('mouseup', stopSplitterDrag);
+            document.addEventListener('touchend', stopSplitterDrag);
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+        }
+
+        function onSplitterDrag(e) {
+            if (!isDraggingSplitter || hubSettings.layoutMode !== 'split') return;
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const containerWidth = desktopArea.clientWidth;
+            let percent = (clientX / containerWidth) * 100;
+            percent = Math.max(10, Math.min(90, percent));
+            
+            const isReverse = desktopArea.classList.contains('reverse');
+            const activeEditor = hubSettings.defaultEditor === 'official' ? document.getElementById('win-official-editor') : document.getElementById('win-custom-editor');
+            const simWin = document.getElementById('win-sim');
+
+            if (!isReverse) {
+                activeEditor.style.flex = `0 0 ${percent}%`;
+                simWin.style.flex = `1`;
+            } else {
+                simWin.style.flex = `0 0 ${percent}%`;
+                activeEditor.style.flex = `1`;
+            }
+        }
+
+        function stopSplitterDrag() {
+            isDraggingSplitter = false;
+            document.removeEventListener('mousemove', onSplitterDrag);
+            document.removeEventListener('touchmove', onSplitterDrag);
+            document.removeEventListener('mouseup', stopSplitterDrag);
+            document.removeEventListener('touchend', stopSplitterDrag);
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+        }
+
+        // --- Window Mode Logic ---
+        function initWindows() {
+            const windows = document.querySelectorAll('.app-window');
+            windows.forEach((win, index) => {
+                win.style.width = '400px';
+                win.style.height = '600px';
+                win.style.top = `${20 + index * 40}px`;
+                win.style.left = `${20 + index * 40}px`;
+                
+                makeWindowDraggable(win);
+                makeWindowResizable(win);
+                
+                win.addEventListener('mousedown', () => {
+                    if (hubSettings.layoutMode === 'window') {
+                        win.style.zIndex = ++maxZIndex;
+                    }
+                });
+            });
+        }
+
+        function makeWindowDraggable(win) {
+            const header = win.querySelector('.window-header');
+            let isDrag = false, sx, sy, iLeft, iTop;
+
+            header.addEventListener('mousedown', (e) => {
+                if(e.target.tagName.toLowerCase() === 'button') return;
+                if(hubSettings.layoutMode !== 'window') return;
+                isDrag = true;
+                sx = e.clientX; sy = e.clientY;
+                iLeft = win.offsetLeft; iTop = win.offsetTop;
+                win.style.zIndex = ++maxZIndex;
+                win.querySelector('.window-body').style.pointerEvents = 'none';
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isDrag) return;
+                win.style.left = `${iLeft + (e.clientX - sx)}px`;
+                win.style.top = `${iTop + (e.clientY - sy)}px`;
+            });
+            document.addEventListener('mouseup', () => {
+                if(isDrag) {
+                    isDrag = false;
+                    win.querySelector('.window-body').style.pointerEvents = '';
+                }
+            });
+            // basic touch support
+            header.addEventListener('touchstart', (e) => {
+                if(e.target.tagName.toLowerCase() === 'button' || hubSettings.layoutMode !== 'window') return;
+                isDrag = true;
+                sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+                iLeft = win.offsetLeft; iTop = win.offsetTop;
+                win.style.zIndex = ++maxZIndex;
+                win.querySelector('.window-body').style.pointerEvents = 'none';
+            }, {passive:true});
+            document.addEventListener('touchmove', (e) => {
+                if (!isDrag) return;
+                win.style.left = `${iLeft + (e.touches[0].clientX - sx)}px`;
+                win.style.top = `${iTop + (e.touches[0].clientY - sy)}px`;
+            }, {passive:true});
+            document.addEventListener('touchend', () => {
+                if(isDrag) { isDrag = false; win.querySelector('.window-body').style.pointerEvents = ''; }
+            });
+        }
+
+        function makeWindowResizable(win) {
+            const resizer = win.querySelector('.window-resizer');
+            let isResizing = false, sx, sy, iWidth, iHeight;
+
+            resizer.addEventListener('mousedown', (e) => {
+                if(hubSettings.layoutMode !== 'window') return;
+                isResizing = true;
+                sx = e.clientX; sy = e.clientY;
+                iWidth = win.offsetWidth; iHeight = win.offsetHeight;
+                win.querySelector('.window-body').style.pointerEvents = 'none';
+                e.stopPropagation();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                win.style.width = `${iWidth + (e.clientX - sx)}px`;
+                win.style.height = `${iHeight + (e.clientY - sy)}px`;
+            });
+            document.addEventListener('mouseup', () => {
+                if(isResizing) {
+                    isResizing = false;
+                    win.querySelector('.window-body').style.pointerEvents = '';
+                }
+            });
+            
+            resizer.addEventListener('touchstart', (e) => {
+                if(hubSettings.layoutMode !== 'window') return;
+                isResizing = true;
+                sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+                iWidth = win.offsetWidth; iHeight = win.offsetHeight;
+                win.querySelector('.window-body').style.pointerEvents = 'none';
+                e.stopPropagation();
+            }, {passive:true});
+            document.addEventListener('touchmove', (e) => {
+                if (!isResizing) return;
+                win.style.width = `${iWidth + (e.touches[0].clientX - sx)}px`;
+                win.style.height = `${iHeight + (e.touches[0].clientY - sy)}px`;
+            }, {passive:true});
+            document.addEventListener('touchend', () => {
+                if(isResizing) { isResizing = false; win.querySelector('.window-body').style.pointerEvents = ''; }
+            });
+        }
+
+        function minimizeWindow(id) {
+            winStates[id].minimized = true;
+            document.getElementById(`win-${id === 'custom' ? 'custom-editor' : id === 'official' ? 'official-editor' : 'sim'}`).classList.add('minimized');
+            renderTaskbar();
+        }
+
+        function restoreWindow(id) {
+            winStates[id].minimized = false;
+            const win = document.getElementById(`win-${id === 'custom' ? 'custom-editor' : id === 'official' ? 'official-editor' : 'sim'}`);
+            win.classList.remove('minimized');
+            win.style.zIndex = ++maxZIndex;
+            renderTaskbar();
+        }
+
+        function renderTaskbar() {
+            const taskbar = document.getElementById('taskbar');
+            taskbar.innerHTML = '';
+            Object.keys(winStates).forEach(id => {
+                const btn = document.createElement('div');
+                btn.className = 'taskbar-item ' + (winStates[id].minimized ? '' : 'active');
+                btn.textContent = winStates[id].name;
+                btn.onclick = () => {
+                    if (winStates[id].minimized) restoreWindow(id);
+                    else minimizeWindow(id);
+                };
+                taskbar.appendChild(btn);
+            });
+        }
+
+        // --- Save / Load Core ---
         function saveCurrentState() {
             showToast("状態を取得中...");
             requestSnapshot('manual');
@@ -436,11 +760,7 @@
                 name = "[Auto] " + timestamp;
             }
             const saveItem = {
-                id: Date.now(),
-                name: name,
-                date: timestamp,
-                editor: snapshot.editor,
-                sim: snapshot.sim
+                id: Date.now(), name: name, date: timestamp, editor: snapshot.editor, sim: snapshot.sim
             };
             const storageKey = mode === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
             try {
@@ -498,24 +818,19 @@
         }
 
         window.loadFile = function(id) {
-        const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
-        const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const item = saved.find(i => i.id === id);
-        if (!item) return;
-        if (confirm(`「${item.name}」を読み込みますか？\n現在の作業内容は上書きされます。`)) {
-            if (item.editor) {
-                editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+            const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const item = saved.find(i => i.id === id);
+            if (!item) return;
+            if (confirm(`「${item.name}」を読み込みますか？\n現在の作業内容は上書きされます。`)) {
+                if (item.editor) editorCustomFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+                if (item.sim) simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+                document.getElementById('fileModal').style.display = 'none';
+                showToast("読み込みました");
             }
-            if (item.sim) {
-                simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
-            }
-            document.getElementById('fileModal').style.display = 'none';
-            showToast("読み込みました");
-        }
-    };
+        };
 
-    window.deleteFile = function(id) {
-
+        window.deleteFile = function(id) {
             if (!confirm("削除しますか？")) return;
             const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
             let saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -523,6 +838,7 @@
             localStorage.setItem(storageKey, JSON.stringify(saved));
             renderFileList();
         };
+
         window.renameFile = function(id) {
             const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
             const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -535,6 +851,7 @@
                 renderFileList();
             }
         };
+
         window.deleteAllFiles = function() {
             const storageKey = currentFileTab === 'auto' ? 'tetrisHubAutoData' : 'tetrisHubData';
             if (confirm("表示中のタブのデータをすべて削除しますか？")) {
@@ -570,23 +887,6 @@
             });
         };
 
-        window.addEventListener('load', () => {
-            const hash = window.location.hash;
-            if (hash.startsWith('#data=')) {
-                try {
-                    const dataStr = decodeURIComponent(escape(atob(hash.substring(6))));
-                    const item = JSON.parse(dataStr);
-                    if (item.editor) editorFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
-                    if (item.sim) simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
-                    showToast("URLから読み込みました");
-                    history.replaceState(null, null, ' ');
-                } catch (e) {
-                    console.error("URLデータのパース失敗", e);
-                }
-            }
-        });
-
-
         window.exportData = function() {
             const saved = localStorage.getItem('tetrisHubData') || '[]';
             if (saved === '[]') { alert("保存されたデータがありません。"); return; }
@@ -602,9 +902,7 @@
             showToast("書き出しました");
         };
 
-        window.triggerImport = function() {
-            document.getElementById('importFile').click();
-        };
+        window.triggerImport = function() { document.getElementById('importFile').click(); };
 
         window.importData = function(input) {
             const file = input.files[0];
@@ -614,14 +912,8 @@
                 try {
                     const imported = JSON.parse(e.target.result);
                     if (!Array.isArray(imported)) throw new Error('Invalid format');
-                    
                     const current = JSON.parse(localStorage.getItem('tetrisHubData') || '[]');
-                    // IDの衝突を避けるため再生成して結合
-                    const newItems = imported.map(item => ({
-                        ...item,
-                        id: Date.now() + Math.floor(Math.random() * 100000)
-                    }));
-                    
+                    const newItems = imported.map(item => ({ ...item, id: Date.now() + Math.floor(Math.random() * 100000) }));
                     const merged = [...newItems, ...current];
                     localStorage.setItem('tetrisHubData', JSON.stringify(merged));
                     openFileManager();
@@ -634,8 +926,7 @@
             reader.readAsText(file);
         };
 
-function showToast(msg) {
-
+        function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.style.opacity = 1;
@@ -648,10 +939,28 @@ function showToast(msg) {
             });
         }
 
-        // iframeのフォーカス制御 (メニューを閉じるため)
+        window.addEventListener('load', () => {
+            loadSettings();
+            initWindows();
+            const hash = window.location.hash;
+            if (hash.startsWith('#data=')) {
+                try {
+                    const dataStr = decodeURIComponent(escape(atob(hash.substring(6))));
+                    const item = JSON.parse(dataStr);
+                    if (item.editor) editorCustomFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+                    if (item.sim) simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+                    showToast("URLから読み込みました");
+                    history.replaceState(null, null, ' ');
+                } catch (e) {
+                    console.error("URLデータのパース失敗", e);
+                }
+            }
+        });
+
         window.addEventListener('blur', () => {
             if (fabMenu.classList.contains('open')) toggleMenu();
         });
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js');
