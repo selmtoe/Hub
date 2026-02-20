@@ -275,7 +275,7 @@
 
     <div id="desktop-area" class="tab-mode">
         <div id="win-custom-editor" class="app-window" data-id="custom">
-            <div class="window-header">自作エディタ<div><button class="win-max-btn" onclick="toggleMaximizeWindow('custom')">□</button><button class="win-min-btn" onclick="minimizeWindow('custom')">_</button></div></div>
+            <div class="window-header">エディタ<div><button class="win-max-btn" onclick="toggleMaximizeWindow('custom')">□</button><button class="win-min-btn" onclick="minimizeWindow('custom')">_</button></div></div>
             <div class="window-body">
                 <iframe id="iframe-editor-custom" src="https://selmtoe.github.io/Tetris_Simulator/F/index.html"></iframe>
             </div>
@@ -283,7 +283,7 @@
    
         </div>
         <div id="win-official-editor" class="app-window" data-id="official">
-            <div class="window-header">本家テト譜<div><button class="win-max-btn" onclick="toggleMaximizeWindow('official')">□</button><button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div></div>
+            <div class="window-header">fumen-for-mobile<div><button class="win-max-btn" onclick="toggleMaximizeWindow('official')">□</button><button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div></div>
             <div class="window-body">
                 <button id="official-import-btn" class="overlay-btn" onclick="importFromOfficial()" title="クリップボードからインポートしてシミュレータへ転送">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -362,8 +362,8 @@
             <div class="setting-row">
                 <span>デフォルトエディタ</span>
                 <select id="setting-editor">
-                    <option value="custom">自作エディタ</option>
-                    <option value="official">本家テト譜</option>
+                    <option value="custom">エディタ</option>
+                    <option value="official">fumen-for-mobile</option>
                 </select>
             </div>
             <div class="setting-row">
@@ -433,8 +433,8 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
         };
 // Window States (For Window Mode Taskbar)
         const winStates = {
-            'custom': { minimized: false, maximized: false, name: '自作エディタ', prevRect: null },
-            'official': { minimized: false, maximized: false, name: '本家テト譜', prevRect: null },
+            'custom': { minimized: false, maximized: false, name: 'エディタ', prevRect: null },
+            'official': { minimized: false, maximized: false, name: 'fumen-for-mobile', prevRect: null },
             'sim': { minimized: false, maximized: false, name: 'シミュレータ', prevRect: null }
         };
         function loadSettings() {
