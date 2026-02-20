@@ -164,6 +164,7 @@
             align-items: center;
             gap: 15px;
             z-index: 9999;
+            pointer-events: none;
         }
         .fab-btn {
             width: 50px;
@@ -188,8 +189,7 @@
 
         .fab-btn:active { transform: scale(0.95); }
         .fab-btn svg { width: 24px; height: 24px; fill: currentColor; }
-
-        .main-toggle { z-index: 10; width: 55px; height: 55px; }
+        .main-toggle { z-index: 10; width: 55px; height: 55px; pointer-events: auto; }
         .main-toggle.open { transform: rotate(45deg); border-color: #ff4b4b; }
 
         .sub-btn {
