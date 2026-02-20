@@ -91,8 +91,9 @@
             user-select: none;
             font-family: var(--font-display);
         }
-        .win-min-btn {
-            background: none; border: none; color: #fff; cursor: pointer; font-weight: bold; padding: 0 5px;
+        .win-min-btn, .win-max-btn {
+            background: none;
+            border: none; color: #fff; cursor: pointer; font-weight: bold; padding: 0 5px;
         }
         .window-body { flex: 1; position: relative; width: 100%; height: 100%; }
         .window-body iframe { width: 100%; height: 100%; border: none; display: block; }
@@ -260,17 +261,19 @@
 
     <div id="desktop-area" class="tab-mode">
         <div id="win-custom-editor" class="app-window" data-id="custom">
-            <div class="window-header">自作エディタ<button class="win-min-btn" onclick="minimizeWindow('custom')">_</button></div>
+            <div class="window-header">自作エディタ<div><button class="win-max-btn" onclick="toggleMaximizeWindow('custom')">□</button><button class="win-min-btn" onclick="minimizeWindow('custom')">_</button></div></div>
             <div class="window-body">
                 <iframe id="iframe-editor-custom" src="https://selmtoe.github.io/Tetris_Simulator/F/index.html"></iframe>
             </div>
             <div class="window-resizer"></div>
+   
         </div>
         <div id="win-official-editor" class="app-window" data-id="official">
-            <div class="window-header">本家テト譜<button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div>
+            <div class="window-header">本家テト譜<div><button class="win-max-btn" onclick="toggleMaximizeWindow('official')">□</button><button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div></div>
             <div class="window-body">
                 <button id="official-import-btn" class="overlay-btn" onclick="importFromOfficial()" title="クリップボードからインポートしてシミュレータへ転送">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+       
                 </button>
                 <iframe id="iframe-editor-official" src="https://knewjade.github.io/fumen-for-mobile/" style="background:#fff;"></iframe>
             </div>
@@ -281,7 +284,8 @@
         <div id="splitter"></div>
 
         <div id="win-sim" class="app-window" data-id="sim">
-            <div class="window-header">シミュレータ<button class="win-min-btn" onclick="minimizeWindow('sim')">_</button></div>
+            <div class="window-header">シミュレータ<div><button class="win-max-btn" onclick="toggleMaximizeWindow('sim')">□</button><button class="win-min-btn" onclick="minimizeWindow('sim')">_</button></div></div>
+    
             <div class="window-body">
                 <iframe id="iframe-sim" src="https://selmtoe.github.io/Tetris_Simulator/index.html"></iframe>
             </div>
@@ -351,13 +355,18 @@
             <div class="setting-row">
                 <span>自動セーブ間隔</span>
                 <select id="setting-autosave">
+              
                     <option value="60000">1分</option>
                     <option value="300000">5分</option>
                     <option value="600000">10分</option>
                     <option value="0">しない</option>
                 </select>
             </div>
-            <button class="control-btn" style="width:100%; margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
+            <button class="control-btn" style="width:100%; margin-top:10px; border-color:#ff4b4b; color:#ff4b4b;" onclick="resetWindowLayouts()">ウィンドウ配置を初期化</button>
+  
+            <button class="control-btn" style="width:100%;
+margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
+
         </div>
     </div>
 
@@ -408,14 +417,12 @@
             defaultEditor: 'custom', // 'custom', 'official'
             autoSaveInterval: 300000
         };
-
-        // Window States (For Window Mode Taskbar)
+// Window States (For Window Mode Taskbar)
         const winStates = {
-            'custom': { minimized: false, name: '自作エディタ' },
-            'official': { minimized: false, name: '本家テト譜' },
-            'sim': { minimized: false, name: 'シミュレータ' }
+            'custom': { minimized: false, maximized: false, name: '自作エディタ', prevRect: null },
+            'official': { minimized: false, maximized: false, name: '本家テト譜', prevRect: null },
+            'sim': { minimized: false, maximized: false, name: 'シミュレータ', prevRect: null }
         };
-
         function loadSettings() {
             try {
                 const saved = localStorage.getItem('tetrisHubSettings');
@@ -449,9 +456,12 @@
             const btnSim = document.getElementById('btn-sim');
             const btnEditor = document.getElementById('btn-editor');
             const btnSwapSide = document.getElementById('btn-swap-side');
-
             if (hubSettings.layoutMode === 'window') {
-                taskbar.classList.remove('hidden');
+                if (fabMenu.classList.contains('open')) {
+                    taskbar.classList.remove('hidden');
+                } else {
+                    taskbar.classList.add('hidden');
+                }
                 renderTaskbar();
                 btnSim.style.display = 'none';
                 btnEditor.style.display = 'none';
@@ -539,7 +549,16 @@
         function toggleMenu() {
             fabMenu.classList.toggle('open');
             mainToggle.classList.toggle('open');
+            if (hubSettings.layoutMode === 'window') {
+                const taskbar = document.getElementById('taskbar');
+                if (fabMenu.classList.contains('open')) {
+                    taskbar.classList.remove('hidden');
+                } else {
+                    taskbar.classList.add('hidden');
+                }
+            }
         }
+
 
         function switchTab(app) {
             activeTab = app;
@@ -638,21 +657,70 @@
             document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
         }
 
+        function saveWindowLayouts() {
+            const layouts = {};
+            document.querySelectorAll('.app-window').forEach(win => {
+                const id = win.getAttribute('data-id');
+                layouts[id] = {
+                    left: win.style.left,
+                    top: win.style.top,
+                    width: win.style.width,
+                    height: win.style.height,
+                    zIndex: win.style.zIndex,
+                    maximized: winStates[id].maximized,
+                    prevRect: winStates[id].prevRect
+                };
+            });
+            localStorage.setItem('tetrisHubWinLayouts', JSON.stringify(layouts));
+        }
+
+        function resetWindowLayouts() {
+            localStorage.removeItem('tetrisHubWinLayouts');
+            initWindows(true);
+            showToast("ウィンドウ配置を初期化しました");
+            document.getElementById('hubSettingsModal').style.display='none';
+            toggleMenu();
+        }
+
         // --- Window Mode Logic ---
-        function initWindows() {
+        function initWindows(forceReset = false) {
             const windows = document.querySelectorAll('.app-window');
+            let savedLayouts = null;
+            if (!forceReset) {
+                try {
+                    savedLayouts = JSON.parse(localStorage.getItem('tetrisHubWinLayouts'));
+                } catch(e) {}
+            }
+
             windows.forEach((win, index) => {
-                win.style.width = '400px';
-                win.style.height = '600px';
-                win.style.top = `${20 + index * 40}px`;
-                win.style.left = `${20 + index * 40}px`;
+                const id = win.getAttribute('data-id');
+                win.style.zIndex = ++maxZIndex;
+                if (savedLayouts && savedLayouts[id]) {
+                    win.style.left = savedLayouts[id].left;
+                    win.style.top = savedLayouts[id].top;
+                    win.style.width = savedLayouts[id].width;
+                    win.style.height = savedLayouts[id].height;
+                    if (savedLayouts[id].zIndex) win.style.zIndex = savedLayouts[id].zIndex;
+                    winStates[id].maximized = savedLayouts[id].maximized;
+                    winStates[id].prevRect = savedLayouts[id].prevRect;
+                } else {
+                    win.style.width = '400px';
+                    win.style.height = '600px';
+                    win.style.top = `${20 + index * 40}px`;
+                    win.style.left = `${20 + index * 40}px`;
+                    winStates[id].maximized = false;
+                    winStates[id].prevRect = null;
+                }
                 
+ 
                 makeWindowDraggable(win);
                 makeWindowResizable(win);
                 
                 win.addEventListener('mousedown', () => {
                     if (hubSettings.layoutMode === 'window') {
+          
                         win.style.zIndex = ++maxZIndex;
+                        saveWindowLayouts();
                     }
                 });
             });
@@ -680,10 +748,14 @@
                 if(isDrag) {
                     isDrag = false;
                     win.querySelector('.window-body').style.pointerEvents = '';
+                    if (winStates[win.getAttribute('data-id')].maximized) {
+                        toggleMaximizeWindow(win.getAttribute('data-id'));
+                    }
+                    saveWindowLayouts();
                 }
             });
-            // basic touch support
-            header.addEventListener('touchstart', (e) => {
+                header.addEventListener('touchstart', (e) => {
+
                 if(e.target.tagName.toLowerCase() === 'button' || hubSettings.layoutMode !== 'window') return;
                 isDrag = true;
                 sx = e.touches[0].clientX; sy = e.touches[0].clientY;
@@ -697,11 +769,19 @@
                 win.style.top = `${iTop + (e.touches[0].clientY - sy)}px`;
             }, {passive:true});
             document.addEventListener('touchend', () => {
-                if(isDrag) { isDrag = false; win.querySelector('.window-body').style.pointerEvents = ''; }
+                if(isDrag) {
+                    isDrag = false;
+                    win.querySelector('.window-body').style.pointerEvents = '';
+                    if (winStates[win.getAttribute('data-id')].maximized) {
+                        toggleMaximizeWindow(win.getAttribute('data-id'));
+                    }
+                    saveWindowLayouts();
+                }
             });
         }
 
         function makeWindowResizable(win) {
+
             const resizer = win.querySelector('.window-resizer');
             let isResizing = false, sx, sy, iWidth, iHeight;
 
@@ -722,10 +802,11 @@
                 if(isResizing) {
                     isResizing = false;
                     win.querySelector('.window-body').style.pointerEvents = '';
+                    saveWindowLayouts();
                 }
             });
-            
             resizer.addEventListener('touchstart', (e) => {
+
                 if(hubSettings.layoutMode !== 'window') return;
                 isResizing = true;
                 sx = e.touches[0].clientX; sy = e.touches[0].clientY;
@@ -739,7 +820,11 @@
                 win.style.height = `${iHeight + (e.touches[0].clientY - sy)}px`;
             }, {passive:true});
             document.addEventListener('touchend', () => {
-                if(isResizing) { isResizing = false; win.querySelector('.window-body').style.pointerEvents = ''; }
+                if(isResizing) {
+                    isResizing = false;
+                    win.querySelector('.window-body').style.pointerEvents = '';
+                    saveWindowLayouts();
+                }
             });
         }
 
@@ -755,6 +840,34 @@
             win.classList.remove('minimized');
             win.style.zIndex = ++maxZIndex;
             renderTaskbar();
+            saveWindowLayouts();
+        }
+
+        function toggleMaximizeWindow(id) {
+            const win = document.getElementById(`win-${id === 'custom' ? 'custom-editor' : id === 'official' ? 'official-editor' : 'sim'}`);
+            if (winStates[id].maximized) {
+                winStates[id].maximized = false;
+                if (winStates[id].prevRect) {
+                    win.style.left = winStates[id].prevRect.left;
+                    win.style.top = winStates[id].prevRect.top;
+                    win.style.width = winStates[id].prevRect.width;
+                    win.style.height = winStates[id].prevRect.height;
+                }
+            } else {
+                winStates[id].maximized = true;
+                winStates[id].prevRect = {
+                    left: win.style.left,
+                    top: win.style.top,
+                    width: win.style.width,
+                    height: win.style.height
+                };
+                win.style.left = '0';
+                win.style.top = '0';
+                win.style.width = '100%';
+                win.style.height = '100%';
+            }
+            win.style.zIndex = ++maxZIndex;
+            saveWindowLayouts();
         }
 
         function renderTaskbar() {
