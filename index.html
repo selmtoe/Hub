@@ -108,20 +108,25 @@
         /* Overlays */
         .overlay-btn {
             position: absolute;
-            bottom: 20px; left: 20px;
-            background: rgba(106, 106, 255, 0.8);
-            color: #fff;
-            border: 1px solid #fff;
-            padding: 8px 12px;
-            border-radius: 5px;
+            top: 15px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--icon-bg);
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            color: #e0e0e0;
+            display: flex; justify-content: center; align-items: center;
             cursor: pointer;
             z-index: 10;
             backdrop-filter: blur(4px);
-            font-weight: bold;
+            transition: all 0.2s;
+            padding: 0; outline: none;
         }
-        .overlay-btn:hover { background: rgba(106, 106, 255, 1); }
-
+        .overlay-btn:active { transform: translateX(-50%) scale(0.95); }
+        .overlay-btn svg { width: 24px; height: 24px; fill: currentColor; }
+        .overlay-btn:hover { border-color: var(--active-color); color: var(--active-color); box-shadow: 0 0 10px var(--active-color); }
         /* Taskbar */
+
         #taskbar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -261,15 +266,17 @@
             </div>
             <div class="window-resizer"></div>
         </div>
-
         <div id="win-official-editor" class="app-window" data-id="official">
             <div class="window-header">本家テト譜<button class="win-min-btn" onclick="minimizeWindow('official')">_</button></div>
             <div class="window-body">
-                <button id="official-import-btn" class="overlay-btn" onclick="importFromOfficial()" title="URLをインポートしてシミュレータへ転送">⬇️ 読込</button>
+                <button id="official-import-btn" class="overlay-btn" onclick="importFromOfficial()" title="クリップボードからインポートしてシミュレータへ転送">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                </button>
                 <iframe id="iframe-editor-official" src="https://knewjade.github.io/fumen-for-mobile/" style="background:#fff;"></iframe>
             </div>
             <div class="window-resizer"></div>
         </div>
+
 
         <div id="splitter"></div>
 
@@ -439,29 +446,38 @@
             winCustom.classList.remove('active');
             winOfficial.classList.remove('active');
 
+            const btnSim = document.getElementById('btn-sim');
+            const btnEditor = document.getElementById('btn-editor');
+            const btnSwapSide = document.getElementById('btn-swap-side');
+
             if (hubSettings.layoutMode === 'window') {
                 taskbar.classList.remove('hidden');
                 renderTaskbar();
+                btnSim.style.display = 'none';
+                btnEditor.style.display = 'none';
+                btnSwapSide.style.display = 'none';
             } else {
                 taskbar.classList.add('hidden');
                 const isOfficial = hubSettings.defaultEditor === 'official';
                 const activeEditor = isOfficial ? winOfficial : winCustom;
-
                 if (hubSettings.layoutMode === 'split') {
                     winSim.classList.add('active');
                     activeEditor.classList.add('active');
-                    // Icon sync
                     document.querySelector('#icon-split path').setAttribute('d', "M5 5h14v14H5zm0-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2z");
+                    btnSim.style.display = 'none';
+                    btnEditor.style.display = 'none';
+                    btnSwapSide.style.display = 'flex';
                 } else if (hubSettings.layoutMode === 'tab') {
                     if (activeTab === 'sim') winSim.classList.add('active');
                     else activeEditor.classList.add('active');
-                    // Icon sync
                     document.querySelector('#icon-split path').setAttribute('d', "M4 18h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2zM4 8h6v8H4V8zm8 0h8v8h-8V8z");
+                    btnSim.style.display = 'flex';
+                    btnEditor.style.display = 'flex';
+                    btnSwapSide.style.display = 'none';
                 }
             }
-            // Active Tab Buttons Update
-            document.getElementById('btn-editor').classList.toggle('active', activeTab === 'editor');
-            document.getElementById('btn-sim').classList.toggle('active', activeTab === 'sim');
+            btnEditor.classList.toggle('active', activeTab === 'editor');
+            btnSim.classList.toggle('active', activeTab === 'sim');
         }
 
         function requestSnapshot(mode) {
@@ -520,7 +536,6 @@
         });
 
 
-        // --- Interaction Logic ---
         function toggleMenu() {
             fabMenu.classList.toggle('open');
             mainToggle.classList.toggle('open');
@@ -546,11 +561,17 @@
             showToast("左右入替");
         }
 
-        function importFromOfficial() {
-            const url = prompt("本家テト譜のURL (v115@...) をペーストしてください:");
-            if (url) {
-                editorCustomFrame.contentWindow.postMessage({ type: 'importUrlToSim', url: url }, '*');
-                showToast("インポートを処理中...");
+        async function importFromOfficial() {
+            try {
+                const url = await navigator.clipboard.readText();
+                if (url && url.includes('v115@')) {
+                    editorCustomFrame.contentWindow.postMessage({ type: 'importUrlToSim', url: url }, '*');
+                    showToast("インポートを処理中...");
+                } else {
+                    showToast("クリップボードに有効なテト譜URLがありません");
+                }
+            } catch (err) {
+                showToast("クリップボードの読み込みに失敗しました");
             }
         }
 
