@@ -351,7 +351,7 @@
                 <h3 onclick="triggerDevMode()" style="user-select:none;">設定</h3>
                 <button onclick="document.getElementById('hubSettingsModal').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;">✕</button>
             </div>
-            <div class="setting-row">
+            <div id="row-layout" class="setting-row" style="display:none;">
                 <span>表示レイアウト</span>
                 <select id="setting-layout">
                     <option value="tab">タブ (全画面)</option>
@@ -1231,13 +1231,15 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
         function triggerDevMode() {
             devModeCount++;
             if (devModeCount >= 10) {
+                document.getElementById('row-layout').style.display = 'flex';
                 document.getElementById('opt-layout-window').style.display = 'block';
                 document.getElementById('btn-reset-layout').style.display = 'block';
-                showToast("Dev Mode Unlocked: Window Mode Enabled");
+                showToast("ウィンドウモードが有効になりました");
                 devModeCount = 0;
             }
         }
         if ('serviceWorker' in navigator) {
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js');
             });
