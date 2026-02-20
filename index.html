@@ -565,6 +565,7 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
 
         mainToggle.addEventListener('mousedown', startFabHold);
         mainToggle.addEventListener('touchstart', startFabHold, {passive: false});
+        mainToggle.addEventListener('touchmove', (e) => { e.preventDefault(); }, {passive: false});
 
         function startFabHold(e) {
             fabHoldTimer = setTimeout(() => {
@@ -863,21 +864,23 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
                     saveWindowLayouts();
                 }
             });
-                header.addEventListener('touchstart', (e) => {
+            header.addEventListener('touchstart', (e) => {
+            if(e.target.tagName.toLowerCase() === 'button' || hubSettings.layoutMode !== 'window') return;
+            isDrag = true;
+            sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+            iLeft = win.offsetLeft; iTop = win.offsetTop;
+            win.style.zIndex = ++maxZIndex;
+            win.querySelector('.window-body').style.pointerEvents = 'none';
+        }, {passive:false});
 
-                if(e.target.tagName.toLowerCase() === 'button' || hubSettings.layoutMode !== 'window') return;
-                isDrag = true;
-                sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-                iLeft = win.offsetLeft; iTop = win.offsetTop;
-                win.style.zIndex = ++maxZIndex;
-                win.querySelector('.window-body').style.pointerEvents = 'none';
-            }, {passive:true});
-            document.addEventListener('touchmove', (e) => {
-                if (!isDrag) return;
-                win.style.left = `${iLeft + (e.touches[0].clientX - sx)}px`;
-                win.style.top = `${iTop + (e.touches[0].clientY - sy)}px`;
-            }, {passive:true});
-            document.addEventListener('touchend', () => {
+        document.addEventListener('touchmove', (e) => {
+            if (!isDrag) return;
+            e.preventDefault();
+            win.style.left = `${iLeft + (e.touches[0].clientX - sx)}px`;
+            win.style.top = `${iTop + (e.touches[0].clientY - sy)}px`;
+        }, {passive:false});
+
+        document.addEventListener('touchend', () => {
                 if(isDrag) {
                     isDrag = false;
                     win.querySelector('.window-body').style.pointerEvents = '';
@@ -915,20 +918,23 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
                 }
             });
             resizer.addEventListener('touchstart', (e) => {
+            if(hubSettings.layoutMode !== 'window') return;
+            isResizing = true;
+            sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+            iWidth = win.offsetWidth; iHeight = win.offsetHeight;
+            win.querySelector('.window-body').style.pointerEvents = 'none';
+            e.stopPropagation();
+        }, {passive:false});
 
-                if(hubSettings.layoutMode !== 'window') return;
-                isResizing = true;
-                sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-                iWidth = win.offsetWidth; iHeight = win.offsetHeight;
-                win.querySelector('.window-body').style.pointerEvents = 'none';
-                e.stopPropagation();
-            }, {passive:true});
-            document.addEventListener('touchmove', (e) => {
-                if (!isResizing) return;
-                win.style.width = `${iWidth + (e.touches[0].clientX - sx)}px`;
-                win.style.height = `${iHeight + (e.touches[0].clientY - sy)}px`;
-            }, {passive:true});
-            document.addEventListener('touchend', () => {
+        document.addEventListener('touchmove', (e) => {
+            if (!isResizing) return;
+            e.preventDefault();
+            win.style.width = `${iWidth + (e.touches[0].clientX - sx)}px`;
+            win.style.height = `${iHeight + (e.touches[0].clientY - sy)}px`;
+        }, {passive:false});
+
+        document.addEventListener('touchend', () => {
+
                 if(isResizing) {
                     isResizing = false;
                     win.querySelector('.window-body').style.pointerEvents = '';
