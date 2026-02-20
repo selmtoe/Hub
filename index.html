@@ -456,6 +456,7 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
         }
 
         function applyLayoutMode() {
+            const mainToggleRect = mainToggle.getBoundingClientRect();
             desktopArea.className = `${hubSettings.layoutMode}-mode`;
             const taskbar = document.getElementById('taskbar');
             
@@ -466,7 +467,6 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             winSim.classList.remove('active');
             winCustom.classList.remove('active');
             winOfficial.classList.remove('active');
-
             const btnSim = document.getElementById('btn-sim');
             const btnEditor = document.getElementById('btn-editor');
             const btnSwapSide = document.getElementById('btn-swap-side');
@@ -502,9 +502,20 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             }
             btnEditor.classList.toggle('active', activeTab === 'editor');
             btnSim.classList.toggle('active', activeTab === 'sim');
+
+            if (fabMenu.style.top) {
+                fabMenu.offsetHeight;
+                const newMainToggleRect = mainToggle.getBoundingClientRect();
+                const diffY = mainToggleRect.top - newMainToggleRect.top;
+                const currentTop = parseFloat(fabMenu.style.top || 0);
+                if (!isNaN(diffY) && Math.abs(diffY) < 1000) {
+                    fabMenu.style.top = (currentTop + diffY) + 'px';
+                }
+            }
         }
 
         function requestSnapshot(mode) {
+
             pendingSnapshot = { editor: null, sim: null, mode: mode };
             editorCustomFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
             simFrame.contentWindow.postMessage({ type: 'requestState' }, '*');
