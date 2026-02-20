@@ -582,6 +582,9 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
                 document.addEventListener('mouseup', stopFabDrag);
                 document.addEventListener('touchend', stopFabDrag);
                 
+                // 【追加】ドラッグ中はiframeにマウスイベントを吸われないようにする
+                document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+                
                 showToast("位置変更モード");
                 if (fabMenu.classList.contains('open')) {
                     fabMenu.classList.remove('open');
@@ -619,11 +622,26 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             document.removeEventListener('mouseup', stopFabDrag);
             document.removeEventListener('touchend', stopFabDrag);
             
-            const rect = fabMenu.getBoundingClientRect();
-            if (rect.top < window.innerHeight / 2) {
+            // 【追加】iframeのクリック判定を元に戻す
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
+            
+            // 【修正】巨大なコンテナ全体ではなく「メインボタン本体」の座標で判定する
+            const mainToggleRect = mainToggle.getBoundingClientRect();
+            const wasExpandDown = fabMenu.classList.contains('expand-down');
+            const shouldExpandDown = mainToggleRect.top < window.innerHeight / 2;
+
+            if (shouldExpandDown) {
                 fabMenu.classList.add('expand-down');
             } else {
                 fabMenu.classList.remove('expand-down');
+            }
+            
+            // 【追加】レイアウトが反転してボタンが瞬間移動してしまう分を計算し、コンテナの位置を逆方向にズラして相殺する
+            if (wasExpandDown !== shouldExpandDown) {
+                const newMainToggleRect = mainToggle.getBoundingClientRect();
+                const diffY = mainToggleRect.top - newMainToggleRect.top;
+                const currentTop = parseFloat(fabMenu.style.top || 0);
+                fabMenu.style.top = (currentTop + diffY) + 'px';
             }
             
             setTimeout(() => { wasFabDragged = false; }, 100);
