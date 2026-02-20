@@ -348,7 +348,7 @@
     <div id="hubSettingsModal" class="modal" onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Hub 設定</h3>
+                <h3 onclick="triggerDevMode()" style="user-select:none;">設定</h3>
                 <button onclick="document.getElementById('hubSettingsModal').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;">✕</button>
             </div>
             <div class="setting-row">
@@ -356,7 +356,7 @@
                 <select id="setting-layout">
                     <option value="tab">タブ (全画面)</option>
                     <option value="split">画面分割</option>
-                    <option value="window">ウィンドウモード</option>
+                    <option value="window" id="opt-layout-window" style="display:none;">ウィンドウモード</option>
                 </select>
             </div>
             <div class="setting-row">
@@ -376,7 +376,7 @@
                     <option value="0">しない</option>
                 </select>
             </div>
-            <button class="control-btn" style="width:100%; margin-top:10px; border-color:#ff4b4b; color:#ff4b4b;" onclick="resetWindowLayouts()">ウィンドウ配置を初期化</button>
+            <button id="btn-reset-layout" class="control-btn" style="width:100%;margin-top:10px; border-color:#ff4b4b; color:#ff4b4b; display:none;" onclick="resetWindowLayouts()">ウィンドウ配置を初期化</button>
   
             <button class="control-btn" style="width:100%;
 margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
@@ -627,28 +627,37 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             document.removeEventListener('mouseup', stopFabDrag);
             document.removeEventListener('touchend', stopFabDrag);
             
-            // 【追加】iframeのクリック判定を元に戻す
             document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = '');
             
-            // 【修正】巨大なコンテナ全体ではなく「メインボタン本体」の座標で判定する
+            const btns = fabMenu.querySelectorAll('.fab-btn');
+            btns.forEach(b => b.style.transition = 'none');
+
             const mainToggleRect = mainToggle.getBoundingClientRect();
             const wasExpandDown = fabMenu.classList.contains('expand-down');
             const shouldExpandDown = mainToggleRect.top < window.innerHeight / 2;
-
+            
             if (shouldExpandDown) {
                 fabMenu.classList.add('expand-down');
             } else {
                 fabMenu.classList.remove('expand-down');
             }
             
-            // 【追加】レイアウトが反転してボタンが瞬間移動してしまう分を計算し、コンテナの位置を逆方向にズラして相殺する
             if (wasExpandDown !== shouldExpandDown) {
+
+                fabMenu.offsetHeight; 
                 const newMainToggleRect = mainToggle.getBoundingClientRect();
                 const diffY = mainToggleRect.top - newMainToggleRect.top;
                 const currentTop = parseFloat(fabMenu.style.top || 0);
-                fabMenu.style.top = (currentTop + diffY) + 'px';
+                
+                // 異常値チェック（念のため）
+                if (!isNaN(diffY) && Math.abs(diffY) < 1000) {
+                     fabMenu.style.top = (currentTop + diffY) + 'px';
+                }
             }
-            
+            requestAnimationFrame(() => {
+                btns.forEach(b => b.style.transition = '');
+            });
+
             setTimeout(() => { wasFabDragged = false; }, 100);
         }
 
@@ -1217,7 +1226,17 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
         window.addEventListener('blur', () => {
             if (fabMenu.classList.contains('open')) toggleMenu();
         });
-
+        
+        let devModeCount = 0;
+        function triggerDevMode() {
+            devModeCount++;
+            if (devModeCount >= 10) {
+                document.getElementById('opt-layout-window').style.display = 'block';
+                document.getElementById('btn-reset-layout').style.display = 'block';
+                showToast("Dev Mode Unlocked: Window Mode Enabled");
+                devModeCount = 0;
+            }
+        }
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js');
