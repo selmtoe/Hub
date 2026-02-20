@@ -40,8 +40,8 @@
         #desktop-area.tab-mode .window-header, #desktop-area.tab-mode .window-resizer { display: none; }
 
         /* --- Split Mode --- */
-        #desktop-area.split-mode { display: flex; flex-direction: row; }
-        #desktop-area.split-mode.reverse { flex-direction: row-reverse; }
+        #desktop-area.split-mode { display: flex;flex-direction: row-reverse; }
+        #desktop-area.split-mode.reverse { flex-direction: row;}
         #desktop-area.split-mode .app-window { display: none; flex: 1; min-width: 0; width: auto !important; height: 100% !important; left: auto !important; top: auto !important; border: none; }
         #desktop-area.split-mode .app-window.active { display: flex; position: relative; }
         #desktop-area.split-mode .window-header, #desktop-area.split-mode .window-resizer { display: none; }
@@ -199,7 +199,17 @@
             transform: translateY(0) scale(1);
             pointer-events: auto;
         }
+        .fab-container.expand-down {
+            flex-direction: column;
+        }
+        .fab-container.expand-down .sub-btn {
+            transform: translateY(-20px) scale(0.5);
+        }
+        .fab-container.expand-down.open .sub-btn {
+            transform: translateY(0) scale(1);
+        }
         .sub-btn.active {
+
             border-color: var(--active-color);
             box-shadow: 0 0 10px var(--active-color);
             color: var(--active-color);
@@ -545,10 +555,87 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             }
         });
 
+        let fabHoldTimer = null;
+        let isFabDragging = false;
+        let fabStartX, fabStartY, initLeft, initTop;
+
+        mainToggle.addEventListener('mousedown', startFabHold);
+        mainToggle.addEventListener('touchstart', startFabHold, {passive: false});
+
+        function startFabHold(e) {
+            fabHoldTimer = setTimeout(() => {
+                isFabDragging = true;
+                wasFabDragged = true;
+                const rect = fabMenu.getBoundingClientRect();
+                initLeft = rect.left;
+                initTop = rect.top;
+                fabStartX = e.touches ? e.touches[0].clientX : e.clientX;
+                fabStartY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                fabMenu.style.bottom = 'auto';
+                fabMenu.style.right = 'auto';
+                fabMenu.style.left = initLeft + 'px';
+                fabMenu.style.top = initTop + 'px';
+                
+                document.addEventListener('mousemove', onFabDrag);
+                document.addEventListener('touchmove', onFabDrag, {passive: false});
+                document.addEventListener('mouseup', stopFabDrag);
+                document.addEventListener('touchend', stopFabDrag);
+                
+                showToast("位置変更モード");
+                if (fabMenu.classList.contains('open')) {
+                    fabMenu.classList.remove('open');
+                    mainToggle.classList.remove('open');
+                }
+            }, 500);
+            
+            document.addEventListener('mouseup', cancelFabHold);
+            document.addEventListener('touchend', cancelFabHold);
+        }
+
+        function cancelFabHold() {
+            if (fabHoldTimer) {
+                clearTimeout(fabHoldTimer);
+                fabHoldTimer = null;
+            }
+            document.removeEventListener('mouseup', cancelFabHold);
+            document.removeEventListener('touchend', cancelFabHold);
+        }
+
+        function onFabDrag(e) {
+            if (!isFabDragging) return;
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            fabMenu.style.left = initLeft + (clientX - fabStartX) + 'px';
+            fabMenu.style.top = initTop + (clientY - fabStartY) + 'px';
+        }
+
+        function stopFabDrag() {
+            isFabDragging = false;
+            document.removeEventListener('mousemove', onFabDrag);
+            document.removeEventListener('touchmove', onFabDrag);
+            document.removeEventListener('mouseup', stopFabDrag);
+            document.removeEventListener('touchend', stopFabDrag);
+            
+            const rect = fabMenu.getBoundingClientRect();
+            if (rect.top < window.innerHeight / 2) {
+                fabMenu.classList.add('expand-down');
+            } else {
+                fabMenu.classList.remove('expand-down');
+            }
+            
+            setTimeout(() => { wasFabDragged = false; }, 100);
+        }
+
+        let wasFabDragged = false;
 
         function toggleMenu() {
+            if (wasFabDragged) return;
             fabMenu.classList.toggle('open');
             mainToggle.classList.toggle('open');
+
             if (hubSettings.layoutMode === 'window') {
                 const taskbar = document.getElementById('taskbar');
                 if (fabMenu.classList.contains('open')) {
@@ -638,15 +725,15 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             const isReverse = desktopArea.classList.contains('reverse');
             const activeEditor = hubSettings.defaultEditor === 'official' ? document.getElementById('win-official-editor') : document.getElementById('win-custom-editor');
             const simWin = document.getElementById('win-sim');
-
             if (!isReverse) {
-                activeEditor.style.flex = `0 0 ${percent}%`;
-                simWin.style.flex = `1`;
-            } else {
                 simWin.style.flex = `0 0 ${percent}%`;
                 activeEditor.style.flex = `1`;
+            } else {
+                activeEditor.style.flex = `0 0 ${percent}%`;
+                simWin.style.flex = `1`;
             }
         }
+
 
         function stopSplitterDrag() {
             isDraggingSplitter = false;
