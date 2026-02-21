@@ -398,12 +398,19 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
                 <button class="control-btn" onclick="exportData()" style="display:flex; align-items:center; justify-content:center; gap:5px;">
                     <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-14 9v2h14v-2H5z"/></svg>全保存
                 </button>
-                <button class="control-btn" onclick="triggerImport()" style="display:flex; align-items:center; justify-content:center; gap:5px;">
+                <button class="control-btn" onclick="triggerImport()" style="display:flex;
+align-items:center; justify-content:center; gap:5px;">
                     <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>読込
                 </button>
-                <button class="control-btn" onclick="deleteAllFiles()" style="border-color:#ff4b4b; color:#ff4b4b;">全削除</button>
+                <button class="control-btn" onclick="deleteAllFiles()" style="border-color:#ff4b4b;
+color:#ff4b4b;">全削除</button>
+            </div>
+            <div style="display:flex; gap:5px; margin-bottom:15px;">
+                <input type="text" id="importUrlInput" placeholder="共有URLをペースト" style="flex:1; padding:8px; border-radius:5px; border:1px solid var(--accent-color); background:rgba(255,255,255,0.1); color:white; outline:none;">
+                <button class="control-btn" onclick="loadFromUrlInput()" style="flex:none; width:60px;">開く</button>
             </div>
             <div id="fileList"></div>
+
         </div>
     </div>
     <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(this)">
@@ -1203,7 +1210,30 @@ margin-top:10px;" onclick="saveHubSettings()">保存して適用</button>
             reader.readAsText(file);
         };
 
+        window.loadFromUrlInput = function() {
+            const input = document.getElementById('importUrlInput');
+            const urlStr = input.value.trim();
+            if (!urlStr) return;
+            try {
+                const hashIndex = urlStr.indexOf('#data=');
+                if (hashIndex === -1) {
+                    showToast("有効なデータURLではありません");
+                    return;
+                }
+                const dataStr = decodeURIComponent(escape(atob(urlStr.substring(hashIndex + 6))));
+                const item = JSON.parse(dataStr);
+                if (item.editor) editorCustomFrame.contentWindow.postMessage({ type: 'loadFumen', data: item.editor }, '*');
+                if (item.sim) simFrame.contentWindow.postMessage({ type: 'loadState', data: item.sim }, '*');
+                showToast("URLから読み込みました");
+                document.getElementById('fileModal').style.display = 'none';
+                input.value = '';
+            } catch (e) {
+                showToast("データの読み込みに失敗しました");
+            }
+        };
+
         function showToast(msg) {
+
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.style.opacity = 1;
